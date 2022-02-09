@@ -41,6 +41,8 @@ void *deposit(void *ptr) {
 
         /* Inicio sección crítica */
 
+        pthread_mutex_lock(&args->bank->mutex[account]);
+
         balance = args->bank->accounts[account];
         if (args->delay) usleep(args->delay); // Force a context switch
 
@@ -51,6 +53,8 @@ void *deposit(void *ptr) {
         if (args->delay) usleep(args->delay);
 
         args->net_total += amount;
+
+        pthread_mutex_unlock(&args->bank->mutex[account]);
 
         /* Fin sección crítica */
     }
@@ -133,7 +137,7 @@ void wait(struct options opt, struct bank *bank, struct thread_info *threads) {
 void init_accounts(struct bank *bank, int num_accounts) {
     bank->num_accounts = num_accounts;
     bank->accounts = malloc(bank->num_accounts * sizeof(int));
-    bank->mutex = malloc(bank->num_accounts * sizeof(bank->mutex);
+    bank->mutex = malloc(bank->num_accounts * sizeof(pthread_mutex_t));
 
     for (int i = 0; i < bank->num_accounts; i++) {
         bank->accounts[i] = 0;
