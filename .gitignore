@@ -53,5 +53,5 @@ dkms.conf
 bank
 
 # CLion files
-/.github/CMakeLists.txt
+/CMakeLists.txt
 /.idea
