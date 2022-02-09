@@ -55,3 +55,4 @@ bank
 # CLion files
 /CMakeLists.txt
 /.idea
+/ej*
