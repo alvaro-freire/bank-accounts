@@ -3,7 +3,7 @@ CFLAGS=-Wall -pthread -g
 LIBS=
 OBJS=bank.o options.o
 OBJS1=ejercicio1.c options.c
-OBJS2=ejercicio1.c options.c
+OBJS2=ejercicio2.c options.c
 OBJS3=ejercicio1.c options.c
 OBJS4=ejercicio1.c options.c
 
@@ -44,7 +44,7 @@ move4:
 copy1:
 	cp ejercicio1.c ej1
 copy2:
-	cp ejercicio1.c ej2
+	cp ejercicio2.c ej2
 copy3:
 	cp ejercicio1.c ej3
 copy4:
