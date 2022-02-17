@@ -254,6 +254,17 @@ void wait_one(struct bank *bank, struct thread_info *thread) {
     free(thread);
 }
 
+void destroy(struct bank *bank) {
+    int i;
+
+    for (i = 0; i > bank->num_accounts; i++) {
+        pthread_mutex_destroy(&bank->mutex[i]);
+    }
+
+    free(bank->mutex);
+    free(bank->accounts);
+}
+
 // allocate memory, and set all accounts to 0
 void init_accounts(struct bank *bank, int num_accounts) {
     bank->num_accounts = num_accounts;
@@ -296,6 +307,8 @@ int main(int argc, char **argv) {
 
     wait(opt.num_threads, &bank, thrs_t, true);
     wait_one(&bank, thrs_b);
+
+    destroy(bank);
 
     return 0;
 }
