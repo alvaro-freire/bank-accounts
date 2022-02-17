@@ -4,15 +4,11 @@ LIBS=
 OBJS=bank.o options.o
 OBJS1=ejercicio1.c options.c
 OBJS2=ejercicio2.c options.c
-OBJS3=ejercicio1.c options.c
-OBJS4=ejercicio1.c options.c
-
-PROGS= bank 
-
-all: $(PROGS)
+OBJS3=ejercicio3.c options.c
+OBJS4=ejercicio4.c options.c
 
 .SILENT:
-all2:
+all:
 	for number in 1 2 3 4 ; do \
         make -s ejercicio$$number ; \
         make -s move$$number ; \
@@ -46,17 +42,6 @@ copy1:
 copy2:
 	cp ejercicio2.c ej2
 copy3:
-	cp ejercicio1.c ej3
+	cp ejercicio3.c ej3
 copy4:
-	cp ejercicio1.c ej4
-
-
-%.o : %.c
-	$(CC) $(CFLAGS) -c $<
-
-bank: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
-
-clean:
-	rm -f $(PROGS) *.o *~
-
+	cp ejercicio4.c ej4
