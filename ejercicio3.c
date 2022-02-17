@@ -308,7 +308,7 @@ int main(int argc, char **argv) {
     wait(opt.num_threads, &bank, thrs_t, true);
     wait_one(&bank, thrs_b);
 
-    destroy(bank);
+    destroy(&bank);
 
     return 0;
 }
