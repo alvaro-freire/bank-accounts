@@ -74,7 +74,6 @@ void *transfer(void *ptr) {
             account2 = rand() % args->bank->num_accounts;
         } while (account1 == account2);
 
-
         while (1) {
             /* Inicio sección crítica */
 
@@ -84,6 +83,15 @@ void *transfer(void *ptr) {
                 pthread_mutex_unlock(&args->bank->mutex[account1]);
                 usleep(1);
                 continue;
+            }
+
+            // if bank account1 is empty, transfer is not possible
+            if (args->bank->accounts[account1] == 0) {
+                amount = 0;
+
+                pthread_mutex_unlock(&args->bank->mutex[account1]);
+                pthread_mutex_unlock(&args->bank->mutex[account2]);
+                break;
             }
 
             amount = rand() % args->bank->accounts[account1];

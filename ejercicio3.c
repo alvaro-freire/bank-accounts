@@ -33,8 +33,9 @@ struct thread_info {
 void *deposit(void *ptr) {
     struct args *args = ptr;
     int amount, account, balance;
+    int tmp = args->iterations;
 
-    while (args->iterations--) {
+    while (tmp--) {
         amount = rand() % MAX_AMOUNT;
         account = rand() % args->bank->num_accounts;
 
@@ -68,7 +69,6 @@ void *transfer(void *ptr) {
     int amount, account1, account2;
     int tmp = args->iterations;
 
-
     while (tmp--) {
         account1 = rand() % args->bank->num_accounts;
 
@@ -86,6 +86,15 @@ void *transfer(void *ptr) {
                 pthread_mutex_unlock(&args->bank->mutex[account1]);
                 usleep(1);
                 continue;
+            }
+
+            // if bank account1 is empty, transfer is not possible
+            if (args->bank->accounts[account1] == 0) {
+                amount = 0;
+
+                pthread_mutex_unlock(&args->bank->mutex[account1]);
+                pthread_mutex_unlock(&args->bank->mutex[account2]);
+                break;
             }
 
             amount = rand() % args->bank->accounts[account1];
