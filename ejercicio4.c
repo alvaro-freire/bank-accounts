@@ -1,10 +1,8 @@
-#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <sys/time.h>
 #include "options.h"
 
 #define MAX_AMOUNT 20
@@ -286,7 +284,7 @@ void wait(int num_threads, struct bank *bank, struct thread_info *threads, bool 
 }
 
 // wait for one single thread to finish
-void wait_one(struct bank *bank, struct thread_info *thread) {
+void wait_one(struct thread_info *thread) {
     pthread_join(thread->id, NULL);
     free(thread->args);
     free(thread);
@@ -344,7 +342,7 @@ int main(int argc, char **argv) {
     thrs_b = start_thread(opt.delay, &bank, balance);  // thread for total balance
 
     wait(opt.num_threads, &bank, thrs_t, true);
-    wait_one(&bank, thrs_b);
+    wait_one(thrs_b);
 
     destroy(&bank);
 
