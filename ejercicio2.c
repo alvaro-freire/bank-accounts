@@ -68,7 +68,9 @@ void *transfer(void *ptr) {
 
 
     while (tmp--) {
-        account1 = rand() % args->bank->num_accounts;
+        do {
+            account1 = rand() % args->bank->num_accounts;
+        } while (args->bank->accounts[account1] == 0);
 
         do {
             account2 = rand() % args->bank->num_accounts;
