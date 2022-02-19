@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <sys/time.h>
 #include "options.h"
 
@@ -11,6 +12,7 @@
 struct bank {
     int num_accounts;        // number of accounts
     int *accounts;           // balance array
+    bool tranfers_finished;
     pthread_mutex_t *mutex;  // mutex array
 };
 
@@ -151,8 +153,8 @@ struct thread_info *start_threads(struct options opt, struct bank *bank, void *(
 }
 
 // Print the final balances of accounts and threads
-void print_balances(struct bank *bank, struct thread_info *thrs, int num_threads) {
-    int total_deposits = 0, bank_total = 0;
+void print_net_deposits(struct thread_info *thrs, int num_threads) {
+    int total_deposits = 0;
     printf("\nNet deposits by thread\n");
 
     for (int i = 0; i < num_threads; i++) {
@@ -160,6 +162,10 @@ void print_balances(struct bank *bank, struct thread_info *thrs, int num_threads
         total_deposits += thrs[i].args->net_total;
     }
     printf("Total: %d\n", total_deposits);
+}
+
+void print_balance(struct bank *bank) {
+    int bank_total = 0;
 
     printf("\nAccount balance\n");
     for (int i = 0; i < bank->num_accounts; i++) {
@@ -169,39 +175,38 @@ void print_balances(struct bank *bank, struct thread_info *thrs, int num_threads
     printf("Total: %d\n\n", bank_total);
 }
 
-// wait for all threads to finish, print totals, and free memory
-void wait_finish(struct options opt, struct bank *bank, struct thread_info *threads) {
+void wait(int num_threads, struct bank *bank, struct thread_info *threads, bool tranfers_finished) {
     // Wait for the threads to finish
-    for (int i = 0; i < opt.num_threads; i++)
+    for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i].id, NULL);
+    }
 
-    print_balances(bank, threads, opt.num_threads);
+    if (tranfers_finished) {
+        // Raise flag (all threads have finished)
+        bank->tranfers_finished = true;
+    } else {
+        // wait call after deposits:
+        print_net_deposits(threads, num_threads);
+    }
 
-    for (int i = 0; i < bank->num_accounts; i++) {
+    print_balance(bank);
+
+    for (int i = 0; i < num_threads; i++) {
+        free(threads[i].args);
+    }
+
+    free(threads);
+}
+
+void destroy(struct bank *bank) {
+    int i;
+
+    for (i = 0; i > bank->num_accounts; i++) {
         pthread_mutex_destroy(&bank->mutex[i]);
     }
 
-    for (int i = 0; i < opt.num_threads; i++) {
-        free(threads[i].args);
-    }
-
-    free(threads);
-    free(bank->accounts);
     free(bank->mutex);
-}
-
-void wait(struct options opt, struct bank *bank, struct thread_info *threads) {
-    // Wait for the threads to finish
-    for (int i = 0; i < opt.num_threads; i++)
-        pthread_join(threads[i].id, NULL);
-
-    print_balances(bank, threads, opt.num_threads);
-
-    for (int i = 0; i < opt.num_threads; i++) {
-        free(threads[i].args);
-    }
-
-    free(threads);
+    free(bank->accounts);
 }
 
 // allocate memory, and set all accounts to 0
@@ -236,11 +241,13 @@ int main(int argc, char **argv) {
 
     printf("**** DEPOSITS ****\n");
     thrs_d = start_threads(opt, &bank, deposit);
-    wait(opt, &bank, thrs_d);
+    wait(opt.num_threads, &bank, thrs_d, false);
 
     printf("**** TRANSFERS ****\n");
-    thrs_t = start_threads(opt, &bank, transfer);
-    wait_finish(opt, &bank, thrs_t);
+    thrs_t = start_threads(opt, &bank, transfer);   // threads for transfers
+    wait(opt.num_threads, &bank, thrs_t, true);
+
+    destroy(&bank);
 
     return 0;
 }
