@@ -89,15 +89,13 @@ void *transfer(void *ptr) {
             }
 
             // if bank account1 is empty, transfer is not possible
-            if (args->bank->accounts[account1] == 0) {
-                amount = 0;
+            if (args->bank->accounts[account1] == 0 || (amount = rand() % args->bank->accounts[account1]) == 0) {
+                tmp++;
 
                 pthread_mutex_unlock(&args->bank->mutex[account1]);
                 pthread_mutex_unlock(&args->bank->mutex[account2]);
                 break;
             }
-
-            amount = rand() % args->bank->accounts[account1];
 
             args->bank->accounts[account1] -= amount;
             if (args->delay) usleep(args->delay); // Force a context switch
@@ -108,13 +106,14 @@ void *transfer(void *ptr) {
 
             pthread_mutex_unlock(&args->bank->mutex[account1]);
             pthread_mutex_unlock(&args->bank->mutex[account2]);
-            break;
 
+            printf("Thread %d transferring %d from account %d to account %d\n",
+                   args->thread_num, amount, account1, account2);
+
+            break;
             /* Fin sección crítica */
         }
 
-        printf("Thread %d transferring %d from account %d to account %d\n",
-               args->thread_num, amount, account1, account2);
     }
 
     return NULL;

@@ -87,9 +87,7 @@ void *transfer(void *ptr) {
         *args->iterations -= 1;
         pthread_mutex_unlock(&args->iter_mutex);    // Fin sección crítica iteraciones
 
-        do {
-            account1 = rand() % args->bank->num_accounts;
-        } while (args->bank->accounts[account1] == 0);
+        account1 = rand() % args->bank->num_accounts;
 
         do {
             account2 = rand() % args->bank->num_accounts;
@@ -100,6 +98,7 @@ void *transfer(void *ptr) {
 
             /* prevención interbloqueo entre account1 y account2: */
             pthread_mutex_lock(&args->bank->mutex[account1]);
+
             if (pthread_mutex_trylock(&args->bank->mutex[account2])) {
                 pthread_mutex_unlock(&args->bank->mutex[account1]);
                 usleep(1);
@@ -107,15 +106,15 @@ void *transfer(void *ptr) {
             }
 
             // if bank account1 is empty, transfer is not possible
-            if (args->bank->accounts[account1] == 0) {
-                amount = 0;
+            if (args->bank->accounts[account1] == 0 || (amount = rand() % args->bank->accounts[account1]) == 0) {
+                pthread_mutex_lock(&args->iter_mutex);
+                *args->iterations += 1;
+                pthread_mutex_unlock(&args->iter_mutex);
 
                 pthread_mutex_unlock(&args->bank->mutex[account1]);
                 pthread_mutex_unlock(&args->bank->mutex[account2]);
                 break;
             }
-
-            amount = rand() % args->bank->accounts[account1];
 
             args->bank->accounts[account1] -= amount;
             if (args->delay) usleep(args->delay); // Force a context switch
@@ -126,13 +125,13 @@ void *transfer(void *ptr) {
 
             pthread_mutex_unlock(&args->bank->mutex[account1]);
             pthread_mutex_unlock(&args->bank->mutex[account2]);
-            break;
 
+            printf("Thread %d transferring %d from account %d to account %d\n",
+                   args->thread_num, amount, account1, account2);
+
+            break;
             /* Fin sección crítica */
         }
-
-        printf("Thread %d transferring %d from account %d to account %d\n",
-               args->thread_num, amount, account1, account2);
     }
 
     return NULL;
