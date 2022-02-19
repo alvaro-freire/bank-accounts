@@ -55,4 +55,5 @@ bank
 # CLion files
 /CMakeLists.txt
 /.idea
+/cmake-build-debug
 /ej*
