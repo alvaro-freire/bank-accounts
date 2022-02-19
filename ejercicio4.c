@@ -259,7 +259,6 @@ void print_balance(struct bank *bank) {
     printf("Total: %d\n\n", bank_total);
 }
 
-
 void wait(int num_threads, struct bank *bank, struct thread_info *threads, bool tranfers_finished) {
     // Wait for the threads to finish
     for (int i = 0; i < num_threads; i++) {
