@@ -19,7 +19,8 @@ struct bank {
 struct args {
     int thread_num;  // application defined thread #
     int delay;       // delay between operations
-    int iterations;  // number of operations
+    int *iterations;  // pointer to number of operations (shared with other threads)
+    pthread_mutex_t iter_mutex;  // mutex (shared with other threads)
     int net_total;   // total amount deposited by this thread
     struct bank *bank;  // pointer to the bank (shared with other threads)
 };
@@ -34,7 +35,17 @@ void *deposit(void *ptr) {
     struct args *args = ptr;
     int amount, account, balance;
 
-    while (args->iterations--) {
+    while (true) {
+        pthread_mutex_lock(&args->iter_mutex);  // Inicio sección crítica iteraciones
+
+        if (*args->iterations == 0) {
+            pthread_mutex_unlock(&args->iter_mutex);
+            break;
+        }
+
+        *args->iterations -= 1;
+        pthread_mutex_unlock(&args->iter_mutex);    // Fin sección crítica iteraciones
+
         amount = rand() % MAX_AMOUNT;
         account = rand() % args->bank->num_accounts;
 
@@ -66,10 +77,21 @@ void *deposit(void *ptr) {
 void *transfer(void *ptr) {
     struct args *args = ptr;
     int amount, account1, account2;
-    int tmp = args->iterations;
 
-    while (tmp--) {
-        account1 = rand() % args->bank->num_accounts;
+    while (true) {
+        pthread_mutex_lock(&args->iter_mutex);  // Inicio sección crítica iteraciones
+
+        if (*args->iterations == 0) {
+            pthread_mutex_unlock(&args->iter_mutex);
+            break;
+        }
+
+        *args->iterations -= 1;
+        pthread_mutex_unlock(&args->iter_mutex);    // Fin sección crítica iteraciones
+
+        do {
+            account1 = rand() % args->bank->num_accounts;
+        } while (args->bank->accounts[account1] == 0);
 
         do {
             account2 = rand() % args->bank->num_accounts;
@@ -153,8 +175,13 @@ void *balance(void *ptr) {
 struct thread_info *start_threads(struct options opt, struct bank *bank, void *(operation)(void *)) {
     int i;
     int num_threads = opt.num_threads;
-    int iterations_surplus = opt.iterations % num_threads;  // iterations left over after dividing
     struct thread_info *threads;
+
+    pthread_mutex_t iter_mutex;
+    pthread_mutex_init(&iter_mutex, NULL);
+
+    int *iterations = malloc(sizeof(int));
+    *iterations = opt.iterations;
 
     printf("CREATING %d THREADS\n", num_threads);
     threads = malloc(sizeof(struct thread_info) * num_threads);
@@ -167,17 +194,13 @@ struct thread_info *start_threads(struct options opt, struct bank *bank, void *(
     // Create num_thread threads running swap()
     for (i = 0; i < num_threads; i++) {
         threads[i].args = malloc(sizeof(struct args));
+        threads[i].args->iter_mutex = iter_mutex;
 
         threads[i].args->thread_num = i;
         threads[i].args->net_total = 0;
         threads[i].args->bank = bank;
         threads[i].args->delay = opt.delay;
-        threads[i].args->iterations = opt.iterations / num_threads;
-
-        if (iterations_surplus > 0) {
-            threads[i].args->iterations++;
-            iterations_surplus--;
-        }
+        threads[i].args->iterations = iterations;
 
         if (0 != pthread_create(&threads[i].id, NULL, operation, threads[i].args)) {
             printf("Could not create thread #%d", i);
@@ -252,6 +275,9 @@ void wait(int num_threads, struct bank *bank, struct thread_info *threads, bool 
     }
 
     print_balance(bank);
+
+    free(threads[0].args->iterations);  // free shared iterations
+    pthread_mutex_destroy(&threads[0].args->iter_mutex);  // destroy mutex
 
     for (int i = 0; i < num_threads; i++) {
         free(threads[i].args);
